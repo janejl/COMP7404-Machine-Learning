@@ -33,6 +33,7 @@ class SolveEightQueens:
         """
         Hint: Modify the stop criterion in this function
         """
+        maxConsecutiveMoves = 100
         newBoard = board
         i = 0 
         while True:
@@ -41,11 +42,18 @@ class SolveEightQueens:
                 print(newBoard.toString())
                 print("# attacks: %s" % str(newBoard.getNumberOfAttacks()))
                 print(newBoard.getCostBoard().toString(True))
+
             currentNumberOfAttacks = newBoard.getNumberOfAttacks()
-            (newBoard, newNumberOfAttacks, newRow, newCol) = newBoard.getBetterBoard()
-            i += 1
-            if currentNumberOfAttacks <= newNumberOfAttacks:
+            if i >= maxConsecutiveMoves and currentNumberOfAttacks == 0:
+                # reach max consecutive moves or goal state
                 break
+
+            i += 1
+            (newBoard, newNumberOfAttacks, newRow, newCol) = newBoard.getBetterBoard()
+            if currentNumberOfAttacks <= newNumberOfAttacks:
+                # reach local minimal, need to randomly initialize current state
+                newBoard = Board()
+
         return newBoard
 
 class Board:
@@ -104,7 +112,29 @@ class Board:
             return (betterBoard, minNumOfAttack, newRow, newCol)
         The datatype of minNumOfAttack, newRow and newCol should be int
         """
-        util.raiseNotDefined()
+        costBoard = self.getCostBoard()
+        costBoardTranspose = list(map(list, zip(*costBoard.squareArray)))
+
+        allNeighbourCost = [cost for row in costBoard.squareArray for cost in row]
+        minNeighbourCost = min(allNeighbourCost)
+        currentAttackCount = self.getNumberOfAttacks()
+
+        if minNeighbourCost >= currentAttackCount:
+            # already in local minimal, return current board with the first queen we meet
+            for x, row in enumerate(costBoard.squareArray):
+                for y, cost in enumerate(row):
+                    if cost == 9999:
+                        return (self, currentAttackCount, x, y)
+        else:
+            boardSize = len(self.squareArray)
+            minNeighbourIdx = allNeighbourCost.index(minNeighbourCost)
+            newRow, newCol = minNeighbourIdx // boardSize, minNeighbourIdx % boardSize
+            # find the queen in corresponding column and move it to minimal neighbour (newRow, newCol)
+            queenRow = costBoardTranspose[newCol].index(9999)
+            self.squareArray[queenRow][newCol] = 0
+            self.squareArray[newRow][newCol] = 1
+
+            return (self, self.getNumberOfAttacks(), newRow, newCol)
 
     def getNumberOfAttacks(self):
         """
@@ -112,7 +142,27 @@ class Board:
         This function should return the number of attacks of the current board
         The datatype of the return value should be int
         """
-        util.raiseNotDefined()
+        def attackCount(queenCount):
+            # given the number of queens in a row/column/diagonal, return corresponding number of attacks
+            return queenCount * (queenCount - 1) / 2 if queenCount > 1 else 0
+
+        attacks = 0
+        # get row attack
+        for row in self.squareArray:
+            attacks += attackCount(sum(row))
+        # get column attack
+        for col in list(map(list, zip(*self.squareArray))):
+            attacks += attackCount(sum(col))
+        # get diagonal attack
+        # TODO: refactor this part
+        size = len(self.squareArray)
+        diagonals = [[self.squareArray[i - j][j] for j in range(max(i - size + 1, 0), min(i + 1, size))] for i in range(size * 2 - 1)]
+        diagonals.extend([[self.squareArray[size - i + j - 1][j] for j in range(max(i - size + 1, 0), min(i + 1, size))] for i in range(size * 2 - 1)])
+        for diagonal in diagonals:
+            attacks += attackCount(sum(diagonal))
+
+        return int(attacks)
+
 
 if __name__ == "__main__":
     #Enable the following line to generate the same random numbers (useful for debugging)
