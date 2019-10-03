@@ -245,9 +245,40 @@ def betterEvaluationFunction(currentGameState):
       evaluation function (question 5).
 
       DESCRIPTION: <write something here so we know what you did>
+
+    Case 1: if ghosts are chasing
+        strategy: pacman should avoid ghosts, look for capsules (if available) and foods.
+        For same distance, capsule is more important than food (to earn score in case 2)
+    Case 2: if ghosts are scared
+        strategy: pacman should look for ghosts and foods.
+
+    Pacman score rules:
+        - food: +10
+        - capsule: 0
+        - normal ghost: -500
+        - scared ghost: +200 (back to normal ghost)
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pacPos = currentGameState.getPacmanPosition()
+
+    foodPositions = currentGameState.getFood().asList()
+    ghostPositions = currentGameState.getGhostPositions()
+    capsulePositions = currentGameState.getCapsules()
+
+    BASE_NUMBER = 9999
+    pacFoodDistances = [manhattanDistance(pacPos, foodPos) for foodPos in foodPositions]
+    minPacFoodDistance = min(pacFoodDistances) if pacFoodDistances else BASE_NUMBER
+    pacCapDistances = [manhattanDistance(pacPos, foodPos) for foodPos in capsulePositions]
+    minPacCapDistance = min(pacCapDistances) if pacCapDistances else BASE_NUMBER
+
+    if sum([ghostState.scaredTimer for ghostState in currentGameState.getGhostStates()]) == 0:
+        # === Case 1: ghosts are chasing ===
+        pacGhostDistances = [max(4 - manhattanDistance(pacPos, ghostPos), 0) ** 2 for ghostPos in ghostPositions]
+        return currentGameState.getScore() + 1 / minPacFoodDistance + 10 / minPacCapDistance - sum(pacGhostDistances)
+    else:
+        # === Case 2: ghosts are scared ===
+        pacGhostDistances = [manhattanDistance(pacPos, ghostPos) for ghostPos in ghostPositions]
+        return currentGameState.getScore() + 1 / minPacFoodDistance + 100 / min(pacGhostDistances)
 
 # Abbreviation
 better = betterEvaluationFunction
