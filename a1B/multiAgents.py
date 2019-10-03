@@ -217,7 +217,27 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.treeRealDepth = self.depth * gameState.getNumAgents()
+        score, pacmanAction = self.ExpectiMax(gameState, self.treeRealDepth, 0, Directions.STOP)
+        return pacmanAction
+
+    def ExpectiMax(self, gameState, depth, agentIndex, pacmanAction):
+        # in leaf node, return (utility value, action)
+        if depth <= 0 or gameState.isWin() or gameState.isLose():
+            return (self.evaluationFunction(gameState), pacmanAction)
+
+        results = []
+        nextAgentIndex = (agentIndex + 1) % gameState.getNumAgents()
+
+        for legalAction in gameState.getLegalActions(agentIndex):
+            successor = gameState.generateSuccessor(agentIndex, legalAction)
+            move = legalAction if agentIndex == 0 and depth == self.treeRealDepth else pacmanAction
+            results.append(self.ExpectiMax(successor, depth - 1, nextAgentIndex, move))
+
+        if agentIndex == 0:
+            return max(results)
+        else:
+            return (sum([r[0] for r in results]) / len(results), pacmanAction)
 
 def betterEvaluationFunction(currentGameState):
     """
