@@ -84,16 +84,160 @@ class GameState:
 
 class GameRules:
     """
-      This class defines the rules in 3-Board Misere Tic-Tac-Toe. 
+      This class defines the rules in 3-Board Misere Tic-Tac-Toe.
       You can add more rules in this class, e.g the fingerprint (patterns).
       However, please do not remove anything.
     """
     def __init__(self):
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
+
+          Reference paper: The Secrets of Notakto: Winning at X-only Tic-Tac-Toe
         """
-        {}
-        
+        self.P = {'a', 'bb', 'bc', 'cc'}
+        self.patternAggregateMap = {
+            'aa': '',
+            'bbb': 'b',
+            'bbc': 'c',
+            'ccc': 'acc',
+            'bbd': 'd',
+            'cd': 'ad',
+            'dd': 'cc'
+        }
+        self.patternsDict = {
+            'c': [[False] * 9],
+            'cc': [
+                [False, False, False, False, True, False, False, False, False]
+            ],
+            'ad': [
+                [True, True, False, False, False, False, False, False, False],
+            ],
+            'd': [
+                [True, True, False, False, False, True, False, False, False],
+                [True, True, False, False, False, False, False, True, False],
+                [True, True, False, False, False, False, False, False, True],
+            ],
+            'ab': [
+                [True, True, False, False, True, False, False, False, False],
+                [True, False, True, False, False, False, True, False, False],
+                [False, True, False, True, True, False, False, False, False],
+                [True, True, False, False, False, True, False, True, False],
+                [True, True, False, False, False, True, False, False, True],
+            ],
+            'b': [
+                [True, False, True, False, False, False, False, False, False],
+                [True, False, False, False, True, False, False, False, False],
+                [True, False, False, False, False, True, False, False, False],
+                [False, True, False, False, True, False, False, False, False],
+                [True, True, False, True, False, False, False, False, False],
+                [False, True, False, True, False, True, False, False, False],
+                [True, True, False, False, True, True, False, False, False],
+                [True, True, False, False, True, False, True, False, False],
+                [True, True, False, False, False, True, True, False, False],
+                [True, True, False, False, False, False, True, True, False],
+                [True, True, False, False, False, False, True, False, True],
+                [True, False, True, False, True, False, False, True, False],
+                [True, False, False, False, True, True, False, True, False],
+                [True, True, False, True, False, True, False, True, False],
+                [True, True, False, True, False, True, False, False, True],
+            ],
+            'a': [
+                [True, False, False, False, False, False, False, False, True],
+                [False, True, False, True, False, False, False, False, False],
+                [False, True, False, False, False, False, False, True, False],
+                [True, True, False, False, False, False, True, False, False],
+                [True, False, True, False, True, False, False, False, False],
+                [True, False, True, False, False, False, False, True, False],
+                [True, False, False, False, True, True, False, False, False],
+                [True, False, False, False, True, True, False, False, False],
+                [True, True, False, True, True, False, False, False, False],
+                [True, True, False, True, False, True, False, False, False],
+                [True, True, False, True, False, False, False, False, True],
+                [True, True, False, False, False, False, False, True, True],
+                [True, False, True, False, False, False, True, False, True],
+                [False, True, False, True, False, True, False, True, False],
+                [True, True, False, False, True, True, True, False, False],
+                [True, True, False, False, False, True, True, True, False],
+                [True, True, False, False, False, True, True, False, True],
+                [True, True, False, True, False, True, False, True, True],
+            ],
+        }
+        self.patterns = {tuple(v): k for k, vs in self.patternsDict.items() for v in vs}
+
+    @staticmethod
+    def getRotatedBoards(board):
+        """
+        Given a board, rotate 90 degrees for 3 times and return a set of boards
+        If any rotation produce same board still the same, the pattern is symmetric.
+        """
+        br1 = (
+            board[6], board[3], board[0],
+            board[7], board[4], board[1],
+            board[8], board[5], board[2],
+        )
+        br2 = (
+            board[8], board[7], board[6],
+            board[5], board[4], board[3],
+            board[2], board[1], board[0],
+        )
+        br3 = (
+            board[2], board[5], board[8],
+            board[1], board[4], board[7],
+            board[0], board[3], board[6],
+        )
+        return {br1, br2, br3}
+
+    @staticmethod
+    def getReflectedBoards(board):
+        """
+        Given a board, return a set of its reflected versions
+        """
+        # reflect by x-axis
+        bf1 = (
+            board[6], board[7], board[8],
+            board[3], board[4], board[5],
+            board[0], board[1], board[2],
+        )
+        # reflect by y-axis
+        bf2 = (
+            board[2], board[1], board[0],
+            board[5], board[4], board[3],
+            board[8], board[7], board[6],
+        )
+        # reflect by diagonals
+        bf3 = (
+            board[0], board[3], board[6],
+            board[1], board[4], board[7],
+            board[2], board[5], board[8],
+        )
+        bf4 = (
+            board[8], board[5], board[2],
+            board[7], board[4], board[1],
+            board[6], board[3], board[0],
+        )
+        # reflect by center point
+        bf5 = (
+            board[8], board[7], board[6],
+            board[5], board[4], board[3],
+            board[2], board[1], board[0],
+        )
+        return {bf1, bf2, bf3, bf4, bf5}
+
+    def getPattern(self, board):
+        # need to take rotate and reflect into consideration
+        allBoards = {tuple(board)} | self.getRotatedBoards(board) | self.getReflectedBoards(board)
+        for b in allBoards:
+            if b in self.patterns:
+                return self.patterns.get(b)
+        return ''
+
+    def getPatternCombination(self, boards):
+        combination = ''.join(sorted(''.join([self.getPattern(b) for b in boards])))
+        for k, v in self.patternAggregateMap.items():
+            if k in combination:
+                combination = combination.replace(k, v)
+        return combination
+
     def deadTest(self, board):
         """
           Check whether a board is a dead board
@@ -137,10 +281,58 @@ class TicTacToeAgent():
         """ 
           You can initialize some variables here, but please do not modify the input parameters.
         """
-        {}
+        self.depth = 2
+        self.SCORE = {
+            'big': 9999,
+            'small': 100
+        }
 
     def getAction(self, gameState, gameRules):
-        util.raiseNotDefined()
+        self.gameRules = gameRules
+        score, action = self.AlphaBeta(gameState, True, -float('inf'), float('inf'), None, self.depth, isRoot=True)
+        return action
+
+    def AlphaBeta(self, gameState, isMaxPlayer, alpha, beta, myAction, depth, isRoot=False):
+        if depth <= 0 or self.gameRules.isGameOver(gameState.boards):
+            return (self.evaluationFunction(gameState, isMaxPlayer), myAction)
+
+        if isMaxPlayer:
+            v = (-float('inf'), None)
+            for legalAction in gameState.getLegalActions(self.gameRules):
+                successor = gameState.generateSuccessor(legalAction)
+                move = legalAction if isRoot else myAction
+                v = max(v, self.AlphaBeta(successor, not isMaxPlayer, alpha, beta, move, depth - 1))
+                if v[0] > beta:
+                    return v
+                alpha = max(alpha, v[0])
+            return v
+        else:
+            v = (float('inf'), None)
+            for legalAction in gameState.getLegalActions(self.gameRules):
+                successor = gameState.generateSuccessor(legalAction)
+                v = min(v, self.AlphaBeta(successor, not isMaxPlayer, alpha, beta, myAction, depth - 1))
+                if v[0] < alpha:
+                    return v
+                beta = min(beta, v[0])
+            return v
+
+    def evaluationFunction(self, gameState, isMaxPlayer):
+        """
+        P-position: the Second player to move wins
+        N-position: the Next player to move wins
+
+        isMaxPlayer:
+        - True: TicTacToeAgent will be the Next player
+        - False: TicTacToeAgent will be the Second player
+        """
+        if self.gameRules.isGameOver(gameState.boards):
+            return self.SCORE['big'] if isMaxPlayer else -self.SCORE['big']
+
+        combination = self.gameRules.getPatternCombination(gameState.boards)
+        if combination in self.gameRules.P:
+            return -self.SCORE['small'] if isMaxPlayer else self.SCORE['small']
+        else:
+            return self.SCORE['small'] if isMaxPlayer else -self.SCORE['small']
 
 
 class randomAgent():
