@@ -215,13 +215,7 @@ class GameRules:
             board[7], board[4], board[1],
             board[6], board[3], board[0],
         )
-        # reflect by center point
-        bf5 = (
-            board[8], board[7], board[6],
-            board[5], board[4], board[3],
-            board[2], board[1], board[0],
-        )
-        return {bf1, bf2, bf3, bf4, bf5}
+        return {bf1, bf2, bf3, bf4}
 
     def getPattern(self, board):
         # need to take rotate and reflect into consideration
