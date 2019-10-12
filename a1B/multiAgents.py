@@ -71,7 +71,7 @@ class ReflexAgent(Agent):
         pacFoodDistances = [manhattanDistance(newPos, foodPos) for foodPos in newFood.asList()]
         minPacFoodDistance = min(pacFoodDistances) if pacFoodDistances else BASE_NUMBER
         # when ghost is very close to the pacman, raise alert level
-        pacGhostDistances = [max(4 - manhattanDistance(newPos, ghostState.getPosition()), 0)**2 for ghostState in newGhostStates]
+        pacGhostDistances = [4/(manhattanDistance(newPos, ghostState.getPosition())+1)**2 for ghostState in newGhostStates]
 
         score += 1 / minPacFoodDistance - sum(pacGhostDistances)
 
@@ -136,11 +136,10 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        self.treeRealDepth = self.depth * gameState.getNumAgents()
-        score, pacmanAction = self.MiniMax(gameState, self.treeRealDepth, 0, Directions.STOP)
+        score, pacmanAction = self.MiniMax(gameState, self.depth * gameState.getNumAgents(), 0, Directions.STOP, True)
         return pacmanAction
 
-    def MiniMax(self, gameState, depth, agentIndex, pacmanAction):
+    def MiniMax(self, gameState, depth, agentIndex, pacmanAction, isRoot=False):
         # in leaf node, return (utility value, action)
         if depth <= 0 or gameState.isWin() or gameState.isLose():
             return (self.evaluationFunction(gameState), pacmanAction)
@@ -150,7 +149,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
         for legalAction in gameState.getLegalActions(agentIndex):
             successor = gameState.generateSuccessor(agentIndex, legalAction)
-            move = legalAction if agentIndex == 0 and depth == self.treeRealDepth else pacmanAction
+            move = legalAction if isRoot else pacmanAction
             results.append(self.MiniMax(successor, depth - 1, nextAgentIndex, move))
 
         result = max(results) if agentIndex == 0 else min(results)
@@ -167,12 +166,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        self.treeRealDepth = self.depth * gameState.getNumAgents()
-        score, action = self.AlphaBeta(gameState, self.treeRealDepth, -float('inf'), float('inf'), 0, Directions.STOP)
+        score, action = self.AlphaBeta(gameState, self.depth * gameState.getNumAgents(), -float('inf'), float('inf'), 0, Directions.STOP, True)
 
         return  action
 
-    def AlphaBeta(self, gameState, depth, alpha, beta, agentIndex, pacmanAction):
+    def AlphaBeta(self, gameState, depth, alpha, beta, agentIndex, pacmanAction, isRoot=False):
         # alpha: MAX's best option alone path to root.
         # beta: MIN's best option alone path to root.
 
@@ -186,22 +184,20 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             v = (-float('inf'), Directions.STOP)
             for legalAction in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, legalAction)
-                move = legalAction if depth == self.treeRealDepth else pacmanAction
+                move = legalAction if isRoot else pacmanAction
                 v = max(v, self.AlphaBeta(successor, depth - 1, alpha, beta, nextAgentIndex, move))
-                alpha = max(alpha, v[0])
                 if v[0] > beta:
-                    # no need to explore this gameState anymore
                     return v
+                alpha = max(alpha, v[0])
             return v
         else:
             v = (float('inf'), Directions.STOP)
             for legalAction in gameState.getLegalActions(agentIndex):
                 successor = gameState.generateSuccessor(agentIndex, legalAction)
                 v = min(v, self.AlphaBeta(successor, depth - 1, alpha, beta, nextAgentIndex, pacmanAction))
-                beta = min(beta, v[0])
                 if v[0] < alpha:
-                    # no need to explore this gameState anymore
                     return v
+                beta = min(beta, v[0])
             return v
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
@@ -217,11 +213,10 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        self.treeRealDepth = self.depth * gameState.getNumAgents()
-        score, pacmanAction = self.ExpectiMax(gameState, self.treeRealDepth, 0, Directions.STOP)
+        score, pacmanAction = self.ExpectiMax(gameState, self.depth * gameState.getNumAgents(), 0, Directions.STOP, True)
         return pacmanAction
 
-    def ExpectiMax(self, gameState, depth, agentIndex, pacmanAction):
+    def ExpectiMax(self, gameState, depth, agentIndex, pacmanAction, isRoot=False):
         # in leaf node, return (utility value, action)
         if depth <= 0 or gameState.isWin() or gameState.isLose():
             return (self.evaluationFunction(gameState), pacmanAction)
@@ -231,7 +226,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         for legalAction in gameState.getLegalActions(agentIndex):
             successor = gameState.generateSuccessor(agentIndex, legalAction)
-            move = legalAction if agentIndex == 0 and depth == self.treeRealDepth else pacmanAction
+            move = legalAction if isRoot else pacmanAction
             results.append(self.ExpectiMax(successor, depth - 1, nextAgentIndex, move))
 
         if agentIndex == 0:
@@ -273,7 +268,7 @@ def betterEvaluationFunction(currentGameState):
 
     if sum([ghostState.scaredTimer for ghostState in currentGameState.getGhostStates()]) == 0:
         # === Case 1: ghosts are chasing ===
-        pacGhostDistances = [max(4 - manhattanDistance(pacPos, ghostPos), 0) ** 2 for ghostPos in ghostPositions]
+        pacGhostDistances = [4/(manhattanDistance(pacPos, ghostPos)+1)**2 for ghostPos in ghostPositions]
         return currentGameState.getScore() + 1 / minPacFoodDistance + 10 / minPacCapDistance - sum(pacGhostDistances)
     else:
         # === Case 2: ghosts are scared ===
