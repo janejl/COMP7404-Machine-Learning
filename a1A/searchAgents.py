@@ -345,17 +345,17 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    (x, y), visitedCorners = state
+    pacmanPos, visitedCorners = state
     unvisitedCorners = set(corners) - set(visitedCorners)
 
     # get furthest L1 norm between unvisited corners
     if len(unvisitedCorners) > 1:
-        distanceCorner = max([sum(abs(a-b) for a, b in zip(cornerA, cornerB)) for cornerA, cornerB in combinations(unvisitedCorners, 2)])
+        cornerDistance = max([sum(abs(a-b) for a, b in zip(cornerA, cornerB)) for cornerA, cornerB in combinations(unvisitedCorners, 2)])
     else:
-        distanceCorner = 0
+        cornerDistance = 0
 
     # h = L1 norm to nearest unvisited corner + furthest L1 norm between unvisited corners
-    distances = [abs(x-c_x)+abs(y-c_y)+distanceCorner for c_x, c_y in unvisitedCorners]
+    distances = [util.manhattanDistance(pacmanPos, unvisitedCorner) + cornerDistance for unvisitedCorner in unvisitedCorners]
     h = min(distances) if distances else 0
 
     return h
@@ -452,16 +452,30 @@ def foodHeuristic(state, problem):
     # don't use foodGrid.asList() here, it's slower than my version
     foodPositions = [(x, y) for x, row in enumerate(foodGrid) for y, isFood in enumerate(row) if isFood]
 
-    # get furthest L1 norm between food
-    if len(foodPositions) > 1:
-        furthestFoodDistance = max([sum(abs(a - b) for a, b in zip(foodA, foodB)) for foodA, foodB in combinations(foodPositions, 2)])
-    else:
-        furthestFoodDistance = 0
+    ##### method 1: nodes expended: 7789 #####
+    # # get furthest L1 norm between food
+    # if len(foodPositions) > 1:
+    #     furthestFoodDistance = max([sum(abs(a - b) for a, b in zip(foodA, foodB)) for foodA, foodB in combinations(foodPositions, 2)])
+    # else:
+    #     furthestFoodDistance = 0
+    #
+    # # h = L1 norm to nearest food + furthest L1 norm between food
+    # distances = [sum(abs(f - p) for f, p in zip(food, position)) + furthestFoodDistance for food in foodPositions]
 
-    # h = L1 norm to nearest food + furthest L1 norm between food
-    distances = [sum(abs(f - p) for f, p in zip(food, position)) + furthestFoodDistance for food in foodPositions]
-    h = min(distances) if distances else 0
-
+    ##### method 2: nodes expended: 4137 #####
+    if 'explored' not in problem.heuristicInfo:
+        problem.heuristicInfo['explored'] = {}
+    distances = []
+    for food in foodPositions:
+        key = (food, position)
+        if key in problem.heuristicInfo['explored']:
+            distances.append(problem.heuristicInfo['explored'][key])
+        else:
+            d = mazeDistance(food, position, problem.startingGameState)
+            problem.heuristicInfo['explored'][key] = d
+            distances.append(d)
+    # h = maze distance to the furthest food
+    h = max(distances) if distances else 0
     return h
 
 class ClosestDotSearchAgent(SearchAgent):
