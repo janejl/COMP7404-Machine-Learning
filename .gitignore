@@ -1,6 +1,9 @@
 # PyCharm
 .idea
 
+# Archieve
+*.zip
+
 # Mac/OSX
 .DS_Store
 
