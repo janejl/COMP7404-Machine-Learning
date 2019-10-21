@@ -31,7 +31,16 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
-
+        states = self.mdp.getStates()
+        for i in range(self.iterations):
+            # Every iteration should be a batch operation!! Don't update self.values until this iteration is done!!!
+            # Here I use a copy of self.values to achieve the batch operation.
+            valuesNew = self.values.copy()
+            for state in states:
+                bestAction = self.getAction(state)
+                if bestAction:
+                    valuesNew[state] = self.getQValue(state, bestAction)
+            self.values = valuesNew
 
     def getValue(self, state):
         """
@@ -39,14 +48,18 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         return self.values[state]
 
-
     def computeQValueFromValues(self, state, action):
         """
           Compute the Q-value of action in state from the
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        Q = 0
+        for (nextState, p) in self.mdp.getTransitionStatesAndProbs(state, action):
+            R = self.mdp.getReward(state, action, nextState)
+            V = self.getValue(nextState)
+            Q += p * (R + self.discount * V)
+        return Q
 
     def computeActionFromValues(self, state):
         """
@@ -58,7 +71,10 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        Qs = util.Counter()
+        for action in self.mdp.getPossibleActions(state):
+            Qs[action] = self.getQValue(state, action)
+        return Qs.argMax()
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
